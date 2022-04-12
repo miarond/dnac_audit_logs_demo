@@ -1,0 +1,6 @@
+.env
+*.csv
+*.json
+myvenv
+venv
+__pycache__
