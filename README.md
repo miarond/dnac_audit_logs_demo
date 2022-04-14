@@ -24,12 +24,26 @@ The Python script `main.py` contains all of the code necessary for this project.
 
 | **Argument** | **Values** | **Default Value** | **Description** |
 | :--- | :--- | :--- | :--- |
+| `--sdk` | N/A | False | Tells the `main.py` script to use the DNACenterSDK package for communication with DNA Center, instead of the Requests package. No argument value is needed, simply selecting the argument stores a "True" value. |
 | `-h`</br>`--help` | N/A | N/A | Displays the help message with details about all CLI arguments. |
 | `-c`</br>`--category` | INFO, WARN, ERROR, ALERT, TASK_PROGRESS, TASK_FAILURE, TASK_COMPLETE, COMMAND, QUERY, CONVERSATION | INFO | Selects the category of Audit Logs you want to export. |
-| `-l`</br>`--level` | 1, 2, 3, 4, 5 | 1 | Selects the Severity Level of Audit Logs you want to export. |
+| `--sev` | 1, 2, 3, 4, 5 | 1 | Selects the Severity Level of Audit Logs you want to export. |
 | `-s`</br>`--start` | ISO-8601 formatted Date/Time strings | `2017-01-01T00:00:00+00:00` | The Start Time for the Audit Log search, expressed in an ISO-8601 date/time format (YYYY-MM-DDThh:mm:ssTZD, Ex: 1997-07-16T19:20:30+01:00).  Information on this format can be found [here](https://www.w3.org/TR/NOTE-datetime).  The script will attempt to convert this string to "Epoch Time" format, which is the number of milliseconds from January 1st, 1970, in UTC. |
 | `-e`</br>`--end` | ISO-8601 formatted Date/Time strings | `2022-04-01T00:00:00+00:00` | The End Time for the Audit Log search, expressed in the same format as Start Time. |
 | `-o`</br>`--output` | csv, json, object | csv | The output format of the export text file.  If `object` is chosen, no file is written to disk and the output is returned as a Python JSON object (NOTE, this will only work when this script is imported into another Python script and the `get_audit_logs` function is called directly.) |
 | `-f`</br>`--filename` | Any string | `output.csv` | The filename used for saving the output file to disk.  This MUST be a string value. |
 
  > **NOTE:** If no command line options are given, the script will default to using the Cisco DevNet Always-on DNA Center Sandbox.  Access to this sandbox may change at any time and as such, the script may fail in the future if no arguments are given at runtime.
+
+## API Documentation
+
+This Python script demonstrates two separate ways of interacting with the DNA Center APIs programmatically.  One method utilizes the well-known `requests` package, which is a generic HTTP client that is user friendly; the other method utilizes Cisco's `dnacentersdk` Python package, which provides a very low-code way to begin using DNA Center APIs.
+
+Documentation for the DNA Center APIs can be found here:
+  - https://developer.cisco.com/docs/dna-center
+
+Documentation for the `requests` package can be found here:
+  - https://docs.python-requests.org/en/latest/
+
+Documentation for the `dnacentersdk` package can be found here:
+  - https://dnacentersdk.readthedocs.io/en/latest

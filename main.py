@@ -32,6 +32,7 @@ import sys
 import dateutil.parser as dp
 import urllib3
 import requests
+from dnacentersdk import DNACenterAPI, ApiError
 from requests.auth import HTTPBasicAuth
 from dotenv import load_dotenv
 
@@ -56,7 +57,7 @@ try:
     else:
         dnac_server = os.getenv("DNAC_SERVER")
     
-    if os.getenv("DNAC_BASE_URL") == '':
+    if os.getenv("DNAC_DATA_BASE_URL") == '':
         data_base_url = '/dna/data/api/v1'
     else:
         data_base_url = os.getenv("DNAC_DATA_BASE_URL")
@@ -68,12 +69,14 @@ def parse_arguments():
     # Parse any incoming command line arguments
     parser = argparse.ArgumentParser(description='This script returns audit log data from DNA Center, filtered '
                                     'by any command line argument options.', formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+    parser.add_argument('--sdk', help='Use the DNACenterSDK instead of the Requests module.', dest='sdk', action='store_true',
+                         default=False)
     parameters = parser.add_argument_group('Audit Log Parameters')
     parameters.add_argument('-c', '--category', type=str, help='Set category; available options are: '
                             'INFO, WARN, ERROR, ALERT, TASK_PROGRESS, TASK_FAILURE, TASK_COMPLETE, COMMAND, QUERY, CONVERSATION',
                                 dest='category', default='INFO')
-    parameters.add_argument('-l', '--level', type=int, help='Set audit log level; available options are: 1, 2, 3, 4, 5.',
-                            dest='level', default=1)
+    parameters.add_argument('--sev', type=int, help='Set audit log severity level; available options are: 1, 2, 3, 4, 5.',
+                            dest='severity', default=1)
     parameters.add_argument('-s', '--start', type=str, help='Start time for audit log search. Expressed in ISO-8601 format: '
                                 'https://www.w3.org/TR/NOTE-datetime  Ex.: YYYY-MM-DDThh:mm:ssTZD (eg. 1997-07-16T19:20:30+01:00)',
                                     dest='start', default='2017-01-01T00:00:00+00:00')
@@ -111,6 +114,18 @@ def dnac_auth():
         sys.stderr.write(f'Authentication to DNA Center failed.\n{response.text}\n')
         sys.exit(1)
     
+
+def sdk_auth():
+    # Authenticate to DNA Center using the SDK
+    try:
+        dnac_session = DNACenterAPI(username=username, password=password, base_url=dnac_server, verify=False)
+    except ApiError as e:
+        sys.stderr.write(f'Authentication to DNA Center using SDK failed.\n{e}\n')
+        sys.exit(1)
+    # Storing token in global variable for consistency; it is stored inside the "api" object when using the SDK
+    global token; token = dnac_session.access_token
+    return dnac_session
+
 
 def get_epoch(input):
     # Convert input date/time to epoch time
@@ -158,11 +173,14 @@ def to_json(logs, args):
     # Write JSON output of logs to a text file
     # Attempt to format JSON with indentation and whitespace
     try:
-        input = json.loads(logs)
-        output = json.dumps(input, indent=4)
+        output = json.dumps(logs, indent=4)
     except Exception as e:
         sys.stderr.write(f'Failed to serialize audit log output as JSON:\n{e}\n')
         output = logs
+    
+    # If no filename is specified, default is output.csv. Here we remove the .csv and replace it with .json
+    if args.filename == 'output.csv':
+        args.filename = args.filename.split(".")[0] + ".json"
     with open(args.filename, 'w', newline='') as f:
         f.write(output)
         f.close()
@@ -171,12 +189,33 @@ def to_json(logs, args):
     return file_path
 
 
+def sdk_get_audit_logs(args, dnac_session):
+    # Obtain any audit log results from DNA Center
+    start = get_epoch(args.start)
+    end = get_epoch(args.end)
+
+    try:
+        logs = dnac_session.event_management.get_auditlog_records(category=args.category, severity=str(args.severity), start_time=start, end_time=end)
+    except ApiError as e:
+        sys.stderr.write(f'An error occurred while obtaining Audit Logs from DNAC via the SDK:\n{e}\n')
+        sys.exit(1)
+    print(f'There are a total count of {len(logs)} records returned by your query.\n')
+    if len(logs) > 0:
+        if args.output == 'csv':
+            return to_csv(logs, args)
+        elif args.output == 'json':
+            return to_json(logs, args)
+        else:
+            return json.loads(logs)
+    else:
+        return logs
+
+
 def get_audit_logs(args, token):
     # Obtain any audit log results from DNA Center
     start_time = get_epoch(args.start)
     end_time = get_epoch(args.end)
 
-    summary_url = f'{dnac_server}{data_base_url}/event/event-series/audit-log/summary'
     logs_url = f'{dnac_server}{data_base_url}/event/event-series/audit-logs'
     header = {
         'Content-Type': 'application/json',
@@ -196,7 +235,7 @@ def get_audit_logs(args, token):
             if args.output == 'csv':
                 return to_csv(logs.json(), args)
             elif args.output == 'json':
-                return to_json(logs.text, args)
+                return to_json(logs.json(), args)
             else:
                 return logs.json()
     else:
@@ -205,5 +244,8 @@ def get_audit_logs(args, token):
 
 if __name__ == '__main__':
     args = parse_arguments()
-    token = dnac_auth()
-    result = get_audit_logs(args, token)
+    if args.sdk is True:
+        result = sdk_get_audit_logs(args, sdk_auth())
+    else:
+        token = dnac_auth()
+        result = get_audit_logs(args, token)
