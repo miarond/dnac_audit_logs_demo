@@ -205,6 +205,8 @@ def sdk_get_audit_logs(args, dnac_session):
             return to_csv(logs, args)
         elif args.output == 'json':
             return to_json(logs, args)
+        elif args.output == 'terminal':
+            print(json.dumps(logs, indent=4))
         else:
             return json.loads(logs)
     else:
@@ -223,7 +225,7 @@ def get_audit_logs(args, token):
     }
     query_params = {
         'category': args.category.upper(),
-        'severity': str(args.level),
+        'severity': str(args.severity),
         'startTime': start_time,
         'endTime': end_time
     }
@@ -236,6 +238,8 @@ def get_audit_logs(args, token):
                 return to_csv(logs.json(), args)
             elif args.output == 'json':
                 return to_json(logs.json(), args)
+            elif args.output == 'terminal':
+                print(json.dumps(logs.json(), indent=4))
             else:
                 return logs.json()
     else:
