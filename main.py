@@ -84,8 +84,8 @@ def parse_arguments():
                                 'https://www.w3.org/TR/NOTE-datetime  Ex.: YYYY-MM-DDThh:mm:ssTZD (eg. 1997-07-16T19:20:30+01:00)',
                                     dest='end', default='2022-04-01T00:00:00+00:00')
 
-    output = parser.add_argument_group('Output type.')
-    output.add_argument('-o', '--output', type=str, help='Output results to a file; available options are: csv, json, object. '
+    output = parser.add_argument_group('Output Type')
+    output.add_argument('-o', '--output', type=str, help='Output results to a file; available options are: csv, json, terminal, object. '
                             'Object output will return the data in JSON format as a Python object, which can be passed to another program.', 
                                 dest='output', default='csv')
     output.add_argument('-f', '--filename', type=str, help='Output filename.', dest='filename', default='output.csv')
